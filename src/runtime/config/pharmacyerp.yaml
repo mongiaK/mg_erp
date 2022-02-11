@@ -1,0 +1,15 @@
+Host: 127.0.0.1
+Port: 9282
+Daemon: false
+Mysql:
+  Host: 127.0.0.1
+  Port: 3306
+  Username: root
+  Password: root
+  Database: pharmacy
+  Conns: 12
+Redis:
+  Host: 127.0.0.1
+  Port: 6379
+  Password: redis
+  Conns: 12

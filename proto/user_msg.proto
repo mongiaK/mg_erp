@@ -1,0 +1,180 @@
+syntax = "proto3";
+
+option go_package = "./user";
+
+enum Sex {
+    BOY = 0;
+    GIRL = 1;
+}
+
+enum UserStatus {
+    ACTIVE = 0;
+    DELETE = 1;
+}
+
+enum Logic {
+    LESS = 0;
+    LESS_THAN = 1;
+    EQUAL = 2;
+    GREAT_THAN = 3;
+    GREAT = 4;
+    IN = 5;
+    NOT_IN = 6;
+    GROUP_BY = 7;
+    ORDER_BY = 8;
+    NOT_EQUAL = 9;
+}
+
+enum UserItem {
+    ALL = 0;
+    USER_ID = 1;
+    USERNAME = 2;
+    PASSWORD = 4;
+    TELEPHONE = 8;
+    SALT = 16;
+    NICKNAME = 32;
+    SEX = 64;
+    BORN_DATE = 128;
+    ICON = 256;
+    STATUS = 512;
+    CREATE_TIME = 1024;
+    UPDATE_TIME = 2048;
+    CARD_TYPE = 4096;
+    CARD = 8192;
+}
+
+enum CardType {
+    ID_CARD = 0;
+    OFFICER_CARD = 1;
+}
+
+message UserInfoDB {
+    int64 user_id = 1;
+    string username = 2;
+    string password = 3;
+    string telephone = 4;
+    string salt = 5;
+    string nickname = 6;
+    int32 sex = 7;
+    uint32 born_date = 8;
+    string icon = 9;
+    int32 card_type = 10;
+    string card = 11;
+    int32 status = 30;
+    string create_time = 31;
+    string update_time = 32;
+}
+
+enum ConditionValueType {
+    NULL = 0;
+    INT = 1;
+    STRING = 2;
+    INT_ARRAY = 3;
+    STRING_ARRAY = 4;
+}
+
+message ConditionItem {
+    UserItem key = 1;
+    Logic logic = 2;
+    ConditionValueType vtype = 3;
+
+    int64 ivalue = 10;
+    string svalue = 11;
+    repeated int64 iavalue = 12;
+    repeated string savalue = 13;
+}
+
+message ConditionItemArray {
+    repeated ConditionItem items = 1;
+}
+
+message Condition {
+    ConditionItemArray and = 1;
+    repeated ConditionItemArray or = 2;
+    ConditionItem orderby = 3;
+    ConditionItem groupby = 4;
+    int32 pagesize = 5;
+    int32 pagenum = 6;
+}
+
+message UserInfos {
+    int64 count = 1;
+    repeated UserInfoDB userinfos = 2;
+}
+
+message GetUserInfoReq {
+    int64 user_items = 1;
+    Condition cond = 2;
+}
+
+message GetUserInfoRes {
+    int32 code = 1;
+    string msg = 2;
+    UserInfos data = 3;
+}
+
+message DeleteUserInfoReq {
+    Condition cond = 1;
+}
+
+message DeleteUserInfoRes {
+    int32 code = 1;
+    string msg = 2;
+}
+
+message CreateUserInfoReq {
+    string username = 1;
+    string password = 2;
+    string telephone = 3;
+    string salt = 4;
+    string nickname = 5;
+    Sex sex = 6;
+    uint32 born_date = 7;
+    string icon = 8;
+    CardType card_type = 9;
+    string card = 10;
+}
+
+message CreateUserInfoRes {
+    int32 code = 1;
+    string msg = 2;
+    UserInfoDB data = 3;
+}
+
+message ModifyUserInfoReq {
+    Condition cond = 1;
+    string username = 3;
+    string password = 4;
+    string telephone = 5;
+    string salt = 6;
+    string nickname = 7;
+    Sex sex = 8;
+    uint32 born_date = 9;
+    string icon = 10;
+    CardType card_type = 11;
+    string card = 12;
+    UserStatus status = 13;
+    
+    int64 modify_items = 30;
+}
+
+message ModifyUserInfoRes {
+    int32 code = 1;
+    string msg = 2;
+    UserInfoDB data = 3;
+}
+
+message GetUserInfoByIDReq {
+    int64 user_items = 1;
+    
+    int64 user_id = 2;
+    string username = 3;
+    string telephone = 4;
+    string card = 5;
+}
+
+message GetUserInfoByIDRes {
+    int32 code = 1;
+    string msg = 2;
+    UserInfoDB data = 3;
+}
