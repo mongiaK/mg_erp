@@ -1,0 +1,12 @@
+syntax="proto3";
+
+import "user_msg.proto";
+
+option go_package="./user";
+
+service UserService {
+	rpc GetUser(GetUserReq) returns(GetUserRes) {};
+	rpc DeleteUser(DeleteUserReq) returns(DeleteUserRes) {};
+	rpc ModifyUser(ModifyUserReq) returns(ModifyUserRes) {};
+	rpc CreateUser(CreateUserReq) returns(CreateUserRes) {};
+}

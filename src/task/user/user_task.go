@@ -118,6 +118,8 @@ func generateSQLWhere(cond *userpb.Condition) (map[string]interface{}, error) {
 	if nil != cond.Orderby {
 		where["_orderby"] = cond.Orderby.Svalue
 	}
-
+	if 0 != cond.Pagesize {
+		where["_limit"] = []uint{uint(cond.Pagenum * cond.Pagesize), uint(cond.Pagesize)}
+	}
 	return where, nil
 }

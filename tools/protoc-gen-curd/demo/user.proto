@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+option go_package = "./user";
+
+message User {
+    optional int64 user_id = 1;
+    optional string username = 2;
+    optional string password = 3;
+    optional int32 sex = 4;
+    optional int64 create_time = 5;
+    optional int64 update_time = 6;
+}

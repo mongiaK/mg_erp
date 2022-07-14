@@ -13,9 +13,7 @@ import (
 	"errors"
 	"strconv"
 
-	middleaware "pharmacyerp/middleaware/user"
 	userpb "pharmacyerp/pb/user"
-	third "pharmacyerp/third"
 	"pharmacyerp/util"
 
 	log "pharmacyerp/log"
@@ -30,53 +28,53 @@ type GetUserInfoByIDTask struct {
 
 func (task *GetUserInfoByIDTask) Run(ctx context.Context) {
 	defer task.setResult()
-	key, keyType, err := task.checkParam()
-	if nil != err {
-		log.Error(err.Error())
-		task.Err = util.EParam
-		return
-	}
-
-	usercache := &middleaware.UserCache{}
-	user, err := usercache.GetInCache(key, int(keyType))
-	if nil != err {
-		log.Warn(err.Error())
-	} else {
-		task.Res.Data = user
-		return
-	}
-
-	where := map[string]interface{}{}
-	switch keyType {
-	case userpb.UserItem_USER_ID:
-		where["user_id"] = key
-		break
-	case userpb.UserItem_TELEPHONE:
-		where["telephone"] = key
-		break
-	case userpb.UserItem_CARD:
-		where["card"] = key
-		break
-	case userpb.UserItem_USERNAME:
-		where["username"] = key
-		break
-	}
-
-	db := third.GetMysqlDB()
-	dao := &middleaware.UserDao{}
-
-	user, err = dao.GetUserOne(db, where, nil)
-	if nil != err {
-		log.Error(err.Error())
-		task.Err = util.EDB
-		return
-	}
-	task.Res.Data = user
-
-	err = usercache.SetInCache(user)
-	if nil != err {
-		log.Warn(err.Error())
-	}
+	//	key, keyType, err := task.checkParam()
+	//	if nil != err {
+	//		log.Error(err.Error())
+	//		task.Err = util.EParam
+	//		return
+	//	}
+	//
+	//	usercache := &middleaware.UserCache{}
+	//	user, err := usercache.GetInCache(key, int(keyType))
+	//	if nil != err {
+	//		log.Warn(err.Error())
+	//	} else {
+	//		task.Res.Data = user
+	//		return
+	//	}
+	//
+	//	where := map[string]interface{}{}
+	//	switch keyType {
+	//	case userpb.UserItem_USER_ID:
+	//		where["user_id"] = key
+	//		break
+	//	case userpb.UserItem_TELEPHONE:
+	//		where["telephone"] = key
+	//		break
+	//	case userpb.UserItem_CARD:
+	//		where["card"] = key
+	//		break
+	//	case userpb.UserItem_USERNAME:
+	//		where["username"] = key
+	//		break
+	//	}
+	//
+	//	db := third.GetMysqlDB()
+	//	dao := &middleaware.UserDao{}
+	//
+	//	users, _, err := dao.GetUserInfo(db, where, nil)
+	//	if nil != err {
+	//		log.Error(err.Error())
+	//		task.Err = util.EDB
+	//		return
+	//	}
+	//	task.Res.Data = user
+	//
+	//	err = usercache.SetInCache(user)
+	//	if nil != err {
+	//		log.Warn(err.Error())
+	//	}
 }
 
 func (task *GetUserInfoByIDTask) setResult() {

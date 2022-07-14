@@ -9,7 +9,6 @@
 package middleaware
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 
@@ -25,22 +24,68 @@ func init() {
 	scanner.SetTagName("json")
 }
 
+// UserDao 用户数据库操作
 type UserDao struct {
 }
 
 // GetUserInfo 获取用户信息
-func (*UserDao) GetUserInfo(db *sql.Tx, where map[string]interface{}, selectFields []string) ([]*UserInfo, error) {
-	users, err := getUserMulti(db, where, selectFields)
+func (*UserDao) GetUserInfo(db *sql.Tx, where map[string]interface{}, selectFields []string) ([]*UserInfo, int64, error) {
+	var count int64 = 0
+	if nil == db {
+		return nil, count, errors.New("sql.Tx object is nil")
+	}
+	cond, vals, err := builder.BuildSelect(userTableName, where, selectFields)
 	if nil != err {
-		return nil, err
+		return nil, count, err
+	}
+	row, err := db.Query(cond, vals...)
+	if nil != err || nil == row {
+		return nil, count, err
+	}
+	defer row.Close()
+
+	var users []*UserInfo
+	err = scanner.Scan(row, &users)
+	if nil != err {
+		return nil, count, err
 	}
 
-	return users, nil
+	if nil != where["_limit"] {
+		res, err := db.Query("SELECT FOUND_ROWS() as total;")
+		if nil != err {
+			return nil, count, err
+		}
+		defer res.Close()
+		result, err := scanner.ScanMap(res)
+		if nil != err {
+			return nil, count, err
+		}
+		if 0 == len(result) {
+			return nil, count, errors.New("SELECT FOUND_ROWS() return array 0")
+		}
+		count = result[0]["count"].(int64)
+	}
+
+	return users, count, nil
 }
 
 // DeleteUserInfo delete rows from db
 func (*UserDao) DeleteUserInfo(db *sql.Tx, where map[string]interface{}) ([]*UserInfo, error) {
-	users, err := getUserMulti(db, where, nil)
+	if nil == db {
+		return nil, errors.New("sql.Tx object is nil")
+	}
+	cond, vals, err := builder.BuildSelect(userTableName, where, nil)
+	if nil != err {
+		return nil, err
+	}
+	row, err := db.Query(cond, vals...)
+	if nil != err || nil == row {
+		return nil, err
+	}
+	defer row.Close()
+
+	var users []*UserInfo
+	err = scanner.Scan(row, &users)
 	if nil != err {
 		return nil, err
 	}
@@ -49,7 +94,11 @@ func (*UserDao) DeleteUserInfo(db *sql.Tx, where map[string]interface{}) ([]*Use
 		return nil, errors.New("[db] no data")
 	}
 
-	_, err = DeleteUser(db, where, nil)
+	cond, vals, err = builder.BuildDelete(userTableName, where)
+	if nil != err {
+		return nil, err
+	}
+	_, err = db.Exec(cond, vals...)
 	if nil != err {
 		return nil, err
 	}
@@ -59,6 +108,9 @@ func (*UserDao) DeleteUserInfo(db *sql.Tx, where map[string]interface{}) ([]*Use
 
 // CreateUserInfo 创建用户
 func (*UserDao) CreateUserInfo(db *sql.DB, data []map[string]interface{}) (int64, error) {
+	if nil == db {
+		return 0, errors.New("sql.Tx object is nil")
+	}
 	cond, vals, err := builder.BuildInsert(userTableName, data)
 	if nil != err {
 		return 0, err
@@ -72,7 +124,22 @@ func (*UserDao) CreateUserInfo(db *sql.DB, data []map[string]interface{}) (int64
 
 // ModifyUserInfo 修改用户信息
 func (*UserDao) ModifyUserInfo(db *sql.Tx, data, where map[string]interface{}) ([]*UserInfo, error) {
-	users, err := getUserMulti(db, where, nil)
+	if nil == db {
+		return nil, errors.New("sql.Tx object is nil")
+	}
+	cond, vals, err := builder.BuildSelect(userTableName, where, nil)
+	if nil != err {
+		return nil, err
+	}
+	row, err := db.Query(cond, vals...)
+	if nil != err || nil == row {
+		return nil, err
+	}
+	defer row.Close()
+
+	var users []*UserInfo
+	err = scanner.Scan(row, &users)
+
 	if nil != err {
 		return nil, err
 	}
@@ -81,97 +148,20 @@ func (*UserDao) ModifyUserInfo(db *sql.Tx, data, where map[string]interface{}) (
 		return nil, errors.New("[db] no data")
 	}
 
-	rowsAffected, err := UpdateUser(db, where, data)
+	cond, vals, err = builder.BuildUpdate(userTableName, where, data)
+	if nil != err {
+		return nil, err
+	}
+	result, err := db.Exec(cond, vals...)
+
 	if nil != err {
 		return nil, err
 	}
 
-	if 0 == rowsAffected {
+	rowsAffected, err := result.RowsAffected()
+	if nil != err || 0 == rowsAffected {
 		return nil, errors.New("[db] no data")
 	}
 
 	return users, nil
-}
-
-func (*UserDao) GetUserCount(db *sql.DB, where map[string]interface{}, selectFields []string) (int64, error) {
-	if nil == db {
-		return 0, errors.New("sql.Tx object couldn't be nil")
-	}
-	result, err := builder.AggregateQuery(context.Background(), db, userTableName, where, builder.AggregateCount("*"))
-	if nil != err {
-		return 0, err
-	}
-
-	return result.Int64(), err
-}
-
-//GetOne gets one record from table user by condition "where"
-func (*UserDao) GetUserOne(db *sql.DB, where map[string]interface{}, selectFields []string) (*UserInfo, error) {
-	if nil == db {
-		return nil, errors.New("sql.DB object couldn't be nil")
-	}
-	cond, vals, err := builder.BuildSelect(userTableName, where, selectFields)
-	if nil != err {
-		return nil, err
-	}
-	row, err := db.Query(cond, vals...)
-	if nil != err || nil == row {
-		return nil, err
-	}
-	defer row.Close()
-	var res *UserInfo
-	err = scanner.Scan(row, &res)
-	return res, err
-}
-
-//GetMulti gets multiple records from table user by condition "where"
-func getUserMulti(db *sql.Tx, where map[string]interface{}, selectFields []string) ([]*UserInfo, error) {
-	if nil == db {
-		return nil, errors.New("sql.Tx object couldn't be nil")
-	}
-	cond, vals, err := builder.BuildSelect(userTableName, where, selectFields)
-	if nil != err {
-		return nil, err
-	}
-	row, err := db.Query(cond, vals...)
-	if nil != err || nil == row {
-		return nil, err
-	}
-	defer row.Close()
-
-	var res []*UserInfo
-	err = scanner.Scan(row, &res)
-	return res, err
-}
-
-//UpdateUser updates the table user
-func UpdateUser(db *sql.Tx, where, data map[string]interface{}) (int64, error) {
-	if nil == db {
-		return 0, errors.New("sql.Tx object couldn't be nil")
-	}
-	cond, vals, err := builder.BuildUpdate(userTableName, where, data)
-	if nil != err {
-		return 0, err
-	}
-	result, err := db.Exec(cond, vals...)
-	if nil != err {
-		return 0, err
-	}
-	return result.RowsAffected()
-}
-
-// DeleteUser deletes matched records in user
-func DeleteUser(db *sql.Tx, where, data map[string]interface{}) (int64, error) {
-	if nil == db {
-		return 0, errors.New("sql.Tx object couldn't be nil")
-	}
-	cond, vals, err := builder.BuildDelete(userTableName, where)
-	if nil != err {
-		return 0, err
-	}
-	result, err := db.Exec(cond, vals...)
-	if nil != err {
-		return 0, err
-	}
-	return result.RowsAffected()
 }

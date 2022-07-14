@@ -43,25 +43,10 @@ func (task *GetUserInfoTask) Run(ctx context.Context) {
 	dao := &middleaware.UserDao{}
 	db := third.GetMysqlDB()
 
-	if 0 != task.Req.Cond.Pagesize {
-		count, err := dao.GetUserCount(db, where, nil)
-		if nil != err {
-			log.Error(err.Error())
-			task.Err = util.EDB
-			return
-		}
-
-		task.Res.Data.Count = count
-		if count == 0 {
-			return
-		}
-
-		where["_limit"] = []uint{uint(task.Req.Cond.Pagenum * task.Req.Cond.Pagesize), uint(task.Req.Cond.Pagesize)}
-	}
-
 	tx, err := db.Begin()
 
-	users, err := dao.GetUserInfo(tx, where, nil)
+	var selectField = []string{"SQL_CALC_FOUND_ROWS", "*"}
+	users, count, err := dao.GetUserInfo(tx, where, selectField)
 	if nil != err {
 		log.Error(err.Error())
 		task.Err = util.EDB
@@ -77,6 +62,7 @@ func (task *GetUserInfoTask) Run(ctx context.Context) {
 
 	tx.Commit()
 	task.Res.Data.Userinfos = users
+	task.Res.Data.Count = count
 }
 
 func (task *GetUserInfoTask) setResult() {
